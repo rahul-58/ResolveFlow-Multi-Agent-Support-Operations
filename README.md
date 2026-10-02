@@ -1,11 +1,26 @@
 # ResolveFlow
 
-ResolveFlow is a local multi-agent support and issue-resolution workflow. It
-helps a small team process tickets using local product documentation, policies,
-ticket history, and a human approval step.
+ResolveFlow is a local-first multi-agent support operations workflow. It helps
+process sample support tickets using local product documentation, policies,
+ticket history, source-grounded response drafting, and human approval.
 
-It is intentionally generic. No personal portfolio data or paid API is
-required.
+It is intentionally generic and runs with local files, SQLite, and Ollama. No
+paid API, production help desk, or real customer data is required.
+
+## Quick start
+
+For the fastest first run:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+python -m app.main --demo --ticket-id TICK-1001
+```
+
+Demo mode does not connect to Ollama. It runs the same workflow with
+deterministic local fallbacks, so it is useful for understanding the project
+and running regression tests before configuring a model.
 
 ## Why this is an agent system
 
@@ -77,6 +92,11 @@ python -m app.main --demo --ticket-id TICK-1001
 
 The demo processes the duplicate-charge ticket and does not save an approved
 resolution unless `--approve-save` is supplied.
+
+The output is a preview containing the workflow plan, triage result, retrieved
+sources, customer response, proposed action plan, verification result, and an
+execution trace. A preview is not sent to a customer and does not mutate the
+ticket database.
 
 ## Sample scenarios
 
@@ -177,13 +197,43 @@ run changed SQLite state.
 
 ## Scope
 
-This MVP drafts and saves approved local outcomes. It does not send email,
-modify a production helpdesk, or make payment/account decisions automatically.
+This MVP drafts and can save approved local outcomes. It does not send email,
+modify a production help desk, or make payment/account decisions automatically.
 
-## Before committing
+## Publish safely to GitHub
 
-- Run `python -m pytest`.
-- Run all nine sample scenarios in preview mode.
-- Confirm `.env`, SQLite databases, and generated run files are ignored.
-- Review the execution traces for unexpected tool calls or unsupported claims.
-- Do not commit real credentials, customer data, or production connection details.
+Before creating a public repository or pushing changes, run the automated checks:
+
+```powershell
+python -m pytest
+git diff --check
+git status
+```
+
+Run the complete sample regression in deterministic preview mode:
+
+```powershell
+1..9 | ForEach-Object {
+    $id = "TICK-10{0:D2}" -f $_
+    Write-Host "`n===== $id =====" -ForegroundColor Cyan
+    python -m app.main --demo --ticket-id $id
+}
+```
+
+Each scenario should finish with `Approved: True` and:
+
+```text
+Preview only. No response, ticket status, or internal task was saved.
+```
+
+Commit the source code, tests, sample tickets, Markdown knowledge files,
+`.env.example`, packaging files, and this README. Do not commit:
+
+- `.env` or any API keys, passwords, or authentication codes.
+- `.venv/` or other local environments.
+- SQLite databases such as `data/*.db`.
+- Generated run records such as `runs/*.json`.
+- Real customer data, production URLs, or connection details.
+
+The sample credentials in `TICK-1005` are intentionally fake and exist only to
+exercise the sensitive-data guardrail. Never replace them with real values.
